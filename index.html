@@ -1,0 +1,349 @@
+<HTML>
+<HEAD>
+	<TITLE> optiks: Options Payoff </TITLE>
+	<link rel="stylesheet" type="text/css" href="mystyle.css">	
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/css/bootstrap-theme.min.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/js/bootstrap.min.js"></script>
+ 
+
+	<SCRIPT language="javascript">
+		google.charts.load('current', {'packages':['corechart','line','table']});
+
+
+
+		var currentPrc;
+		var prcStep;
+		var prcCount;
+
+		var myArray = [];
+		var sumArray = [];
+		var headArray = [];
+
+		function addRow(tableID) {
+
+			var table = document.getElementById(tableID);
+
+			var rowCount = table.rows.length;
+			var row = table.insertRow(rowCount);
+			var cell0 = row.insertCell(0);
+			var cell1 = row.insertCell(1);
+			var cell2 = row.insertCell(2);
+			var cell3 = row.insertCell(3);
+			var cell4 = row.insertCell(4);
+			var cell5 = row.insertCell(5);
+			var cell6 = row.insertCell(6);
+
+			
+			var elem0 = document.createElement("input");
+			var elem1 = document.createElement("input");
+			var elem2 = document.createElement("input");
+			var elem3 = document.createElement("select");
+			var elem4 = document.createElement("select");
+			var elem5 = document.createElement("input");
+			var elem6 = document.createElement("input");
+
+			
+			
+			cell0.appendChild(elem0);
+			
+
+			elem0.type = 'checkbox';
+			elem0.name = 'chkbox[]';
+			elem0.checked = true;
+
+			cell1.appendChild(elem1);
+			cell1.innerHTML = rowCount;
+ 			
+
+
+			cell2.appendChild(elem2);
+			
+			cell3.appendChild(elem3);
+			cell4.appendChild(elem4);
+
+ 			var option_c = document.createElement("option");
+ 			option_c.setAttribute('value', 'Call');
+ 			option_c.innerHTML = 'Call';
+ 			elem3.appendChild(option_c);
+
+ 			var option_p = document.createElement("option");
+ 			option_p.setAttribute('value', 'Put');
+ 			option_p.innerHTML = 'Put';
+ 			elem3.appendChild(option_p);
+
+ 			var option_b = document.createElement("option");
+ 			option_b.setAttribute('value', 'Buy');
+ 			option_b.innerHTML = 'Buy';
+ 			elem4.appendChild(option_b);
+
+ 			var option_s = document.createElement("option");
+ 			option_s.setAttribute('value', 'Sell');
+ 			option_s.innerHTML = 'Sell';
+ 			elem4.appendChild(option_s);
+
+
+			cell5.appendChild(elem5);
+			cell6.appendChild(elem6);
+		}
+	
+	 
+		function deleteRow(tableID) {
+			try {
+			var table = document.getElementById(tableID);
+			var rowCount = table.rows.length;
+
+			for(var i=0; i<rowCount; i++) {
+				var row = table.rows[i];
+				var chkbox = row.cells[0].childNodes[0];
+				if(null != chkbox && true == chkbox.checked) {
+					table.deleteRow(i);
+					rowCount--;
+					i--;
+				}
+
+			}
+			}catch(e) {
+				alert(e);
+			}
+		}
+		/********************************************************************************
+		**
+		**
+		********************************************************************************/
+		function computePayOff(strExpiry, strPrc, strType, strSide, strPremium, strQty ){
+			var ret = 0.0;
+			if(strType == "Call"){
+				if(strSide == "Buy") {
+					if(strExpiry >= strPrc){
+						ret = (( strExpiry - strPrc )*strQty) - (strQty * strPremium)  ;
+					} else {
+						ret = -1 * strQty * strPremium;
+					}
+				} else { //for Call Sell
+					if(strExpiry > strPrc){
+						ret = (strQty * strPremium) - (( strExpiry - strPrc )*strQty) ;
+					} else {
+						ret = strQty * strPremium;
+					}
+				}
+			} else { // for put option
+				if(strSide == "Buy") {
+					if(strExpiry >= strPrc){
+						ret = -1 * strQty * strPremium;
+					} else {
+						ret = ((strPrc - strExpiry)*strQty) - (strQty * strPremium);
+					}
+				} else { //for Call Sell
+					if(strExpiry > strPrc) { // OTM
+						ret = strQty * strPremium;
+					} else {
+						ret = (strQty * strPremium) - (strPrc - strExpiry)*strQty;
+					}
+				}
+
+			}
+			return ret;
+
+		}
+		/********************************************************************************
+		**
+		**
+		********************************************************************************/
+		function calcPayOff(tableID) {
+			//first build the array with the range of prices
+			currentPrc=parseInt(document.getElementById("currentPrc").value);
+			prcStep=parseInt(document.getElementById("prcStep").value);
+			prcCount=parseInt(document.getElementById("prcCount").value);
+
+			var lowerRange = currentPrc - (prcStep*prcCount);
+			var higherRange = currentPrc + (prcStep*prcCount);
+
+			 myArray = [];
+			 sumArray = [];
+			 headArray = [];
+
+			for(var i=0; i<(prcCount*2); i++) {
+				sumArray[i]=0;
+				myArray[i] = [];
+				myArray[i][0] = lowerRange + prcStep;
+				lowerRange = lowerRange + prcStep;
+			}
+			 
+
+
+			//compute the payoff for each selection option
+			
+			var myTable = document.getElementById(tableID);
+			var myRowCount = myTable.rows.length;
+
+			headArray[0] = "Expiry";
+			var numOpts = 0;
+			for (var i = 0; i < myRowCount; i++){
+				
+				var row = myTable.rows[i];
+				var chkbox = row.cells[0].childNodes[0];
+				if (null != chkbox && true == chkbox.checked) {
+					numOpts++;
+					var strPrc = row.cells[2].childNodes[0].value;
+					var strType = row.cells[3].childNodes[0].options[row.cells[3].childNodes[0].selectedIndex].value;
+					var strSide = row.cells[4].childNodes[0].options[row.cells[4].childNodes[0].selectedIndex].value;
+					var strPremium = row.cells[5].childNodes[0].value;
+					var strQty = row.cells[6].childNodes[0].value;
+					var strName = strPrc.concat("_",strType,"_",strSide);
+					headArray[numOpts] = strName;
+					for (var j = 0; j < myArray.length ; j++){
+						var strExpiry = myArray[j][0];
+						myArray[j][numOpts] = computePayOff(strExpiry, parseInt(strPrc), strType, strSide, parseInt(strPremium), parseInt(strQty) );
+						//sum it up
+						sumArray[j] = sumArray[j] + myArray[j][numOpts];
+					}
+				}
+			}
+			headArray[numOpts+1] = "Summary";
+			//displayTable();
+			displayChart();
+			//google.charts.setOnLoadCallback(displayChart);
+		}
+		/********************************************************************************
+		** displayTable()
+		**
+		********************************************************************************/
+		function displayTable() {	 
+			
+			var tablearea = document.getElementById('content_area_id');
+			tablearea.innerHTML = "";
+			var table = document.createElement('table');
+
+			var x = document.createElement('th');
+			 for (var i = 0; i < headArray.leangth; i++){
+ 
+			  		var thtxt = document.createTextNode(headArray[i]);
+			  		x.appendChild(thtxt);	 
+			}
+			table.appendChild(x); 
+
+			for (var i = 0; i < myArray.length; i++){
+			    var tr = document.createElement('tr');   
+				var myRow = myArray[i];
+			    for (var j = 0; j < myRow.length ; j++) {
+			    	var td1 = document.createElement('td');
+			    	var text1 = document.createTextNode(myRow[j]);
+			    	td1.appendChild(text1);
+			    	tr.appendChild(td1);
+					
+				}
+				 
+			  		var tdsum = document.createElement('td');
+			  		var sumtxt = document.createTextNode(sumArray[i]);
+			  		tdsum.appendChild(sumtxt);
+			  		tr.appendChild(tdsum);
+			  	
+
+				table.appendChild(tr);
+			}
+			tablearea.appendChild(table);
+ 		}
+ 		/********************************************************************************
+		**displayChart()
+		**
+		********************************************************************************/
+		function displayChart() {
+			var options = {
+ 			hAxis: {
+          			title: 'Expiry',
+          			 
+        		},
+        	vAxis: {
+          			title: 'P & L',
+          			 
+        		},
+        	legend: { position: 'top' },
+        	};
+        	var chart = new google.visualization.LineChart(document.getElementById('chart_area_id'));
+        	var myTable = new google.visualization.Table(document.getElementById('content_area_id'));
+        	
+	        var data = new google.visualization.DataTable();
+	        // Add header
+	         
+	        for (var i = 0; i < headArray.length; i++) {
+	        	data.addColumn('number', headArray[i]);
+	        }
+	        data.addRows(myArray.length);
+	        for (var i = 0; i < myArray.length; i++) {
+
+	        	var myRow = myArray[i];
+	        	for (var j=0; j < myRow.length ; j++) {
+	        		data.setCell(i, j, myRow[j]);
+	        	}
+	        	data.setCell(i, myRow.length, sumArray[i]);
+	        }
+        	chart.draw(data, options);
+        	
+        	myTable.draw(data, {showRowNumber: true});
+		}
+	</SCRIPT>
+</HEAD>
+<BODY>
+	<div class='container-fluid'>
+		<div class="top_line_cls row">
+			<h1>Options PayOff Visualization</h1>
+			<div class="controls_div_cls col-xs-1">
+				<p> </p>
+				<p>
+				<INPUT type="button" class="btn btn-primary btn-sm" value="Add Option" onclick="addRow('dataTable')" />
+				</p>
+				<p>
+				<INPUT type="button" class="btn btn-danger btn-sm" value="Del Option" onclick="deleteRow('dataTable')" />
+				</p>
+				<p>
+				<INPUT type="button" class="btn btn-info btn-sm" value="Calc PayOff" onclick="calcPayOff('dataTable')" />
+				</p>
+			</div>
+
+ 
+			<div class='table_div_cls col-xs-8'>
+				<table class="table table-hover table-condensed" id="dataTable">
+					<TR>
+						<TD>Chk</TD>
+						<TD>Id</TD>
+						<TD>Strike</TD>
+						<TD>Type</TD>
+						<TD>Side</TD>
+						<TD>Premium</TD>
+						<TD>Quantity</TD>
+					</TR>
+				</table>
+			</div>
+			<div class='inputs_cls col-xs-3'>
+				<form class="form-horizontal">
+				  <div class="form-group">
+				    <label for="prcCurrent">Current Price</label>
+				    <input type="number" class="form-control" id="currentPrc" value="100">
+				  </div>
+				  <div class="form-group">
+				    <label for="prcStep">Price Step</label>
+				    <input type="number" class="form-control" id="prcStep" value="1">
+				  </div>
+				  <div class="form-group">
+				    <label for="prcCount">#Steps</label>
+				    <input type="number" id="prcCount" value="10">
+				  </div>
+				</form>
+			</div>
+		</div>
+		<div class="row">
+			<div class="chart_area_cls col-xs-12">
+				<div class='chart_area_cls' id='chart_area_id'></div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="content_area_cls col-xs-12">
+				<div class='content_area_cls' id='content_area_id'></div>
+			</div>
+		</div>
+	</div>
+</BODY>
+</HTML>
