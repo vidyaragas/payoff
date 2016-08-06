@@ -5,3 +5,4 @@ A JavaScript to visualize option payoff
 - visualize the payoff curve for individual and portfolio
 - adjust the range of the strike price using price step and number of steps
 - view payoff data in a table
+- live at http://payoff.rainoversea.com
